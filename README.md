@@ -11,8 +11,8 @@ Using LendingClub loan-level data, I build a clean “origination-only” modeli
 
 ## What’s in This Repository
 
-- **`ML_Final_Assignment_756486.pdf`** — the full research-paper report (methods, results, figures, tables).
-- **`ML_Final_Assignment_756486.R`** — a single, fully reproducible R script that:
+- **`Risk_at_First_Sight.pdf`** — the full research-paper report (methods, results, figures, tables).
+- **`Risk_at_First_Sight.R`** — a single, fully reproducible R script that:
   
   - prepares the dataset,
   - trains/evaluates models,
