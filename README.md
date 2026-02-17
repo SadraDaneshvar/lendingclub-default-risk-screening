@@ -1,8 +1,6 @@
-<h1 align="center"><b>Risk at First Sight: Default-Risk Prediction & Screening at Loan Origination in P2P Consumer Lending</b></h1>
-
----
-
-## Problem Overview
+<span style="font-family:Times New Roman; font-size:14pt;">
+<h1 align="center"><b>Risk at First Sight: Default-Risk Prediction & Screening at Loan Origination in P2P Consumer Lending</b></h2>
+</span>
 
 Peer-to-peer (P2P) lending platforms must decide, *at origination*, which applicants to accept and how to price risk.  
 This project studies a practical question:
@@ -10,8 +8,6 @@ This project studies a practical question:
 **How predictable is loan default risk using only information available at origination, and what does that imply for screening policies?**
 
 Using LendingClub loan-level data, I build a clean “origination-only” modeling pipeline, compare several classifiers, and translate prediction quality into **screening performance** (e.g., how many future defaults you can catch by reviewing only the riskiest applications). As an econometric add-on, I also run a **Double / Debiased Machine Learning (DML)** extension to study how contract terms relate to default after flexible adjustment for borrower characteristics.
-
----
 
 ## What’s in This Repository
 
@@ -23,13 +19,9 @@ Using LendingClub loan-level data, I build a clean “origination-only” modeli
   - generates plots + LaTeX-ready tables,
   - runs the DML extension.
 
----
-
 ## Data
 
 The analysis uses the **LendingClub “accepted loans” dataset**. Due to file size/licensing, the dataset is **not included** in the repo, but can be accessed from [LendingClub dataset on Kaggle](https://www.kaggle.com/datasets/wordsforthewise/lending-club/data). 
-
----
 
 ## Methodology (Project Phases)
 
@@ -41,8 +33,6 @@ A major goal is to keep the prediction problem realistic:
 - avoid post-origination variables (payments, recoveries, etc.),
 - construct a cohort to reduce right-censoring issues,
 - split into train/test cleanly (with a fixed seed for reproducibility).
-
----
 
 ### Phase 2. Predictive Modeling + Screening Evaluation
 
@@ -59,8 +49,6 @@ Evaluation focuses on both:
 - **overall predictive metrics** (AUC, Brier score, accuracy, error), and
 - **screening metrics** that matter operationally (ROC/PR curves, cumulative gains / lift curves).
 
----
-
 ### Phase 3. DML Extension (Contract Terms & Default)
 
 As a causal-style add-on, the project estimates how default risk differs across:
@@ -70,8 +58,6 @@ As a causal-style add-on, the project estimates how default risk differs across:
 
 using a **partially linear model** with **cross-fitted elastic-net** nuisance functions (DML / orthogonalized “residual-on-residual” regression).  
 This is mainly used to show *why naive differences can be misleading* under strong selection.
-
----
 
 ## Key Results (Very Short)
 
@@ -88,8 +74,6 @@ This is mainly used to show *why naive differences can be misleading* under stro
 
 **Screening takeaway:** reviewing only the **top ~20–30% riskiest** applicants captures **about half of all future defaults**, far above random screening.
 
----
-
 ### DML extension (naive vs adjusted)
 
 | Treatment                   | Estimator                 | Effect (pp) [95% CI]    |
@@ -100,8 +84,6 @@ This is mainly used to show *why naive differences can be misleading* under stro
 | High interest (≥ 75th pct)  | DML (elastic net, K-fold) | 1.74 [-4.87, 8.34]      |
 
 **Interpretation (briefly):** after flexible adjustment, the **high-interest “effect” shrinks a lot**, suggesting the naive gap is mostly selection on observables; term-length DML becomes unstable due to weak overlap.
-
----
 
 ## How to Run
 
@@ -136,14 +118,10 @@ The script generates:
 
 > If you prefer all outputs to go into an `output/` folder, you can trivially redirect the `ggsave()` / table exports to `output/` paths.
 
----
-
 ## Notes on Reproducibility
 
 * The pipeline uses fixed random seeds for consistent train/test splits and model tuning.
 * The entire project is designed around an **origination-only information set** to avoid leakage and keep the screening interpretation meaningful.
-
----
 
 ## License
 
