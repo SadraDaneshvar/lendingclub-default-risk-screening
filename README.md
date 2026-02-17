@@ -59,32 +59,6 @@ As a causal-style add-on, the project estimates how default risk differs across:
 using a **partially linear model** with **cross-fitted elastic-net** nuisance functions (DML / orthogonalized “residual-on-residual” regression).  
 This is mainly used to show *why naive differences can be misleading* under strong selection.
 
-## Key Results (Very Short)
-
-### Predictive performance (test set)
-
-| Model               |   AUC | Brier |
-| ------------------- | ----: | ----: |
-| Logistic regression | 0.725 | 0.134 |
-| Elastic net         | 0.724 | 0.134 |
-| Random forest       | 0.723 | 0.138 |
-| Bagging (custom)    | 0.695 | 0.141 |
-| Bagging (`ipred`)   | 0.691 | 0.141 |
-| CART                | 0.664 | 0.147 |
-
-**Screening takeaway:** reviewing only the **top ~20–30% riskiest** applicants captures **about half of all future defaults**, far above random screening.
-
-### DML extension (naive vs adjusted)
-
-| Treatment                   | Estimator                 | Effect (pp) [95% CI]    |
-| --------------------------- | ------------------------- | ----------------------- |
-| 60-month term (vs 36-month) | Naive diff-in-means       | 18.28 [17.59, 18.96]    |
-| 60-month term (vs 36-month) | DML (elastic net, K-fold) | 67.69 [-343.62, 479.01] |
-| High interest (≥ 75th pct)  | Naive diff-in-means       | 18.19 [17.50, 18.87]    |
-| High interest (≥ 75th pct)  | DML (elastic net, K-fold) | 1.74 [-4.87, 8.34]      |
-
-**Interpretation (briefly):** after flexible adjustment, the **high-interest “effect” shrinks a lot**, suggesting the naive gap is mostly selection on observables; term-length DML becomes unstable due to weak overlap.
-
 ## How to Run
 
 ### 1) Put the dataset in place
