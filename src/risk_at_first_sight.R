@@ -1,7 +1,7 @@
 ## ===================================================================
 ## Risk at First Sight - ML Final Assignment
 ## -------------------------------------------------------------------
-## Student Number: 756486 - Dec 2025
+## Curated public implementation - Dec 2025
 ## ===================================================================
 
 ## ===================================================================
@@ -28,18 +28,23 @@
 pkgs <- c(                                                          # list of packages required for the full analysis
   "readr","dplyr","tidyr","stringr","forcats","tibble",
   "ggplot2","patchwork","scales",
-  "glmnet","pROC","rpart","ipred","ranger"
+  "glmnet","pROC","rpart","ipred","ranger","stargazer"
 )
 
-to_install <- pkgs[!pkgs %in% rownames(installed.packages())]        # check which required packages are not yet installed
-if (length(to_install) > 0) install.packages(to_install)             # install missing packages so the script runs on a clean machine
+missing_pkgs <- pkgs[!pkgs %in% rownames(installed.packages())]      # check which required packages are available
+if (length(missing_pkgs) > 0) {                                     # fail with an actionable message instead of mutating the environment
+  stop(
+    "Missing R packages: ", paste(missing_pkgs, collapse = ", "),
+    ". Run `make setup` from the repository root."
+  )
+}
 
 invisible(lapply(pkgs, library, character.only = TRUE))              # load all packages quietly for use throughout the script
 
 base_seed <- 1363                                                    # set the master seed for reproducible results across the project
 set.seed(base_seed)                                                  # fix the random number generator state using the master seed
 
-theme_academic <- function(base_size = 11, base_family = "Times New Roman") {  # define a consistent ggplot theme for all figures
+theme_academic <- function(base_size = 11, base_family = "serif") {  # use a portable serif family available across operating systems
   theme_classic(base_size = base_size, base_family = base_family) +            # use a clean classic theme as the base style
     theme(
       plot.title      = element_text(face = "bold", size = base_size + 1, hjust = 0),   # left-aligned bold title
@@ -62,6 +67,11 @@ theme_academic <- function(base_size = 11, base_family = "Times New Roman") {  #
 
 theme_set(theme_academic())                                             # apply the academic theme globally to all ggplot figures
 
+figure_dir <- file.path("results", "figures")                          # keep regenerated figures out of the repository root
+if (!dir.exists(figure_dir)) dir.create(figure_dir, recursive = TRUE)   # create the output directory on a clean checkout
+table_dir <- file.path("results", "tables")                            # collect regenerated LaTeX tables alongside figures
+if (!dir.exists(table_dir)) dir.create(table_dir, recursive = TRUE)     # create the table directory on a clean checkout
+
 ## ===================================================================
 ## 1. Load full Kaggle LendingClub file
 ## ===================================================================
@@ -70,6 +80,13 @@ data_dir <- "data"                                                # folder name 
 if (!dir.exists(data_dir)) dir.create(data_dir)                   # create the folder if it does not already exist
 
 lc_file <- file.path(data_dir, "accepted_2007_to_2018Q4.csv")     # full path to the expected LendingClub CSV file
+
+if (!file.exists(lc_file)) {                                      # stop early when the third-party dataset has not been prepared
+  stop(
+    "Missing data file: ", lc_file,
+    ". Follow data/README.md, then run `make verify-data`."
+  )
+}
 
 lc_raw <- readr::read_csv(lc_file, show_col_types = FALSE)        # read the full dataset and suppress column type printing
 
@@ -244,7 +261,7 @@ plot_year_panel <- plot_year_counts + plot_year_default +             # combine 
 print(plot_year_panel)                                                # display the combined panel in the plotting device
 
 ggplot2::ggsave(                                                      # save the combined panel to disk at high resolution
-  filename = "plot_year_panel.png",
+  filename = file.path(figure_dir, "plot_year_panel.png"),
   plot     = plot_year_panel,
   width    = 12, height = 4, units = "in",
   dpi      = 1000
@@ -781,7 +798,7 @@ stargazer::stargazer(                                                # export th
   table.placement = "!htbp",
   title = "Data preparation audit trail",
   label = "tab:data_audit",
-  out = "table_data_audit.tex"
+  out = file.path(table_dir, "table_data_audit.tex")
 )
 
 ## -------------------------------------------------------------------
@@ -871,7 +888,7 @@ plot_def_grade_int_panel <- plot_def_by_grade_term + plot_int_default +  # combi
 print(plot_def_grade_int_panel)                                      # display the combined panel in the plotting device
 
 ggplot2::ggsave(                                                     # save the combined panel at high resolution
-  filename = "plot_def_grade_int_panel.png",
+  filename = file.path(figure_dir, "plot_def_grade_int_panel.png"),
   plot     = plot_def_grade_int_panel,
   width    = 12, height = 6, units = "in",
   dpi      = 1000
@@ -933,7 +950,7 @@ plot_heat_grade_fico <- lc_model_orig %>%                             # compute 
 print(plot_heat_grade_fico)                                           # display the heatmap in the plotting device
 
 ggplot2::ggsave(                                                      # save the heatmap to disk at high resolution
-  filename = "plot_heat_grade_fico.png",
+  filename = file.path(figure_dir, "plot_heat_grade_fico.png"),
   plot     = plot_heat_grade_fico,
   width    = 12, height = 6, units = "in",
   dpi      = 1000
@@ -1061,7 +1078,7 @@ stopifnot(ncol(x_train) == ncol(x_test))                                        
 
 if (!exists("metrics_binary")) {                                                  # define the helper only once to avoid overwriting in later runs
   if (!requireNamespace("pROC", quietly = TRUE)) {                                # check that the ROC and AUC package is available
-    install.packages("pROC")                                                      # install the package if it is missing
+    stop("Package `pROC` is required. Run `make setup` from the repository root.")
   }
   library(pROC)                                                                   # attach pROC for ROC and AUC computation
   
@@ -1533,7 +1550,7 @@ stargazer::stargazer(                                                       # ex
   table.placement = "!htbp",
   title = "Out-of-bag performance summary",
   label = "tab:oob_report",
-  out = "table_oob_report.tex"
+  out = file.path(table_dir, "table_oob_report.tex")
 )
 
 ## -------------------------------------------------------------------
@@ -1594,7 +1611,7 @@ plot_oob_bagging <- ggplot2::ggplot(oob_plot_df, ggplot2::aes(x = B, y = oob_err
 print(plot_oob_bagging)                                                    # display the OOB curve plot
 
 ggplot2::ggsave(                                                           # save the OOB curve plot at high resolution
-  filename = "plot_oob_bagging.png",
+  filename = file.path(figure_dir, "plot_oob_bagging.png"),
   plot     = plot_oob_bagging,
   width    = 12, height = 4, units = "in",
   dpi      = 1000
@@ -1714,7 +1731,7 @@ stargazer::stargazer(
   table.placement = "!htbp",
   title = "Test-set performance comparison (common test set)",
   label = "tab:model_metrics_test",
-  out = "table_model_metrics_test.tex"
+  out = file.path(table_dir, "table_model_metrics_test.tex")
 )
 
 ## -------------------------------------------------------------------
@@ -1802,7 +1819,7 @@ plot_roc_pr <- (plot_roc | plot_pr) +
 print(plot_roc_pr)                                                          # print the combined ROC and PR panel
 
 ggplot2::ggsave(
-  filename = "plot_roc_pr.png",                                             # save the combined ROC and PR panel as a high-resolution figure
+  filename = file.path(figure_dir, "plot_roc_pr.png"),                       # save the combined ROC and PR panel as a high-resolution figure
   plot     = plot_roc_pr,
   width    = 10, height = 6, units = "in",
   dpi      = 1000
@@ -1847,7 +1864,7 @@ plot_lift <- ggplot2::ggplot(lift_df, ggplot2::aes(x = frac_population, y = frac
 print(plot_lift)                                                            # print the lift plot
 
 ggplot2::ggsave(
-  filename = "plot_lift.png",                                               # save the lift plot as a high-resolution figure
+  filename = file.path(figure_dir, "plot_lift.png"),                         # save the lift plot as a high-resolution figure
   plot     = plot_lift,
   width    = 12, height = 6, units = "in",
   dpi      = 1000
@@ -1871,7 +1888,7 @@ plot_risk_dist <- ggplot2::ggplot(
 print(plot_risk_dist)                                                       # print the risk distribution figure
 
 ggplot2::ggsave(
-  filename = "plot_risk_dist.png",                                          # save the risk distribution figure as a high-resolution plot
+  filename = file.path(figure_dir, "plot_risk_dist.png"),                    # save the risk distribution figure as a high-resolution plot
   plot     = plot_risk_dist,
   width    = 10, height = 6, units = "in",
   dpi      = 1000
@@ -2265,7 +2282,7 @@ stargazer::stargazer(                                                         # 
   table.placement = "!htbp",                                                  # set the LaTeX float placement preference
   title           = "Naive vs DML estimates for two treatments",              # table caption shown in the manuscript
   label           = "tab:dml_naive_vs_dml",                                    # LaTeX label for referencing
-  out             = "table_dml_naive_vs_dml.tex"                               # output file name
+  out             = file.path(table_dir, "table_dml_naive_vs_dml.tex")         # output file name
 )
 
 ## ===================================================================

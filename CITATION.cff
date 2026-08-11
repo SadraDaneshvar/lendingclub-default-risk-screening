@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this project, please cite the repository and final report."
+title: "Risk at First Sight: LendingClub Default-Risk Prediction and Origination Screening"
+type: software
+version: "1.0.0"
+license: MIT
+repository-code: "https://github.com/SadraDaneshvar/lendingclub-default-risk-screening"
+authors:
+  - family-names: Daneshvar
+    given-names: Sadra
+abstract: >-
+  A leakage-aware study of default-risk prediction at loan origination using
+  LendingClub data, statistical and tree-based classifiers, operational
+  screening curves, and a cross-fitted Double Machine Learning extension.
+keywords:
+  - credit risk
+  - default prediction
+  - origination screening
+  - LendingClub
+  - elastic net
+  - random forest
+  - double machine learning

@@ -1,0 +1,15 @@
+.DS_Store
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+renv/library/
+renv/staging/
+Rplots.pdf
+*.log
+.env
+.env.*
+
+/data/*.csv
+/data/*.zip
+/results/
