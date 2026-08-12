@@ -2,37 +2,43 @@
 
 <div align="center">
 
-**Leakage-aware credit-risk modelling with operational screening curves and a Double Machine Learning extension**
+**Leakage-aware credit scoring that turns default probabilities into a finite review queue**
 
-[![R](https://img.shields.io/badge/R-4.5-1b1918?style=for-the-badge&logo=r&logoColor=white)](https://www.r-project.org/)
-[![Task](https://img.shields.io/badge/Task-default_prediction-bc0031?style=for-the-badge)](#predictive-models)
-[![Decision](https://img.shields.io/badge/Decision-origination_screening-1d7492?style=for-the-badge)](#screening-as-a-decision-problem)
-[![Data](https://img.shields.io/badge/Data-LendingClub_2007--2018-a45c00?style=for-the-badge)](#data-and-cohort-construction)
-[![License](https://img.shields.io/badge/License-MIT-257835?style=for-the-badge)](LICENSE)
+[![R](https://img.shields.io/badge/R-4.5-276DC3?style=for-the-badge&logo=r&logoColor=white)](https://www.r-project.org/)
+[![Raw data](https://img.shields.io/badge/Raw_data-2.26M_loans-334155?style=for-the-badge)](#data-provenance-and-cohort-construction)
+[![Study sample](https://img.shields.io/badge/Study_sample-119%2C995_loans-7C3AED?style=for-the-badge)](#data-provenance-and-cohort-construction)
+[![Models](https://img.shields.io/badge/Models-6_classifiers-B91C1C?style=for-the-badge)](#predictive-model-bench)
+[![Evaluation](https://img.shields.io/badge/Evaluation-ROC_%7C_PR_%7C_Brier-0369A1?style=for-the-badge)](#probability-ranking-and-screening-metrics)
+[![Decision](https://img.shields.io/badge/Decision-Gains_%26_lift-D97706?style=for-the-badge)](#screening-as-a-decision-problem)
+[![Extension](https://img.shields.io/badge/Extension-Cross--fitted_DML-0F766E?style=for-the-badge)](#double-machine-learning-extension)
+[![License](https://img.shields.io/badge/License-MIT-1F7A1F?style=for-the-badge)](LICENSE)
 
-**[Read the report](report/risk-at-first-sight-report.pdf)** · **[Inspect the R analysis](src/risk_at_first_sight.R)** · **[Prepare the data](data/README.md)**
+**[Read the final report](report/risk-at-first-sight-report.pdf)** · **[Inspect the complete R pipeline](src/risk_at_first_sight.R)** · **[Prepare and verify the raw data](data/README.md)**
 
 Original academic project title: **Risk at First Sight**
 
 </div>
 
-**Risk at First Sight** develops an end-to-end view of consumer-credit screening: begin with the information available when a loan is issued, estimate future default risk without post-origination leakage, compare statistical and machine-learning classifiers on one held-out test set, and translate their scores into the practical question of which applications should be reviewed first.
+**Risk at First Sight** builds a complete historical credit-screening experiment: define a completed-loan cohort, freeze the information set at origination, compare six statistical and tree-based classifiers on one common held-out set, and convert predicted default risk into an ordered review policy. A separate Double Machine Learning branch studies adjusted associations for loan maturity and high interest rates without presenting them as clean causal effects.
 
-This README is the project's information hub. The [final report](report/risk-at-first-sight-report.pdf) contains the full literature review, derivations, figures, tables, references, implementation appendix, and extended economic discussion.
+The project spans **credit-risk modelling, cohort engineering, outcome harmonization, right-censoring control, leakage prevention, median imputation, categorical level management, one-hot encoding, logistic regression, elastic-net regularization, CART, bootstrap aggregation, out-of-bag evaluation, random forests, ROC and precision–recall analysis, Brier scores, cumulative gains, lift, cross-fitting, nuisance models, residualization, overlap diagnostics, and reproducible R engineering**. This README is the navigation and technical layer; the [final report](report/risk-at-first-sight-report.pdf) contains the complete literature review, derivations, figures, tables, bibliography, and submitted implementation appendix.
 
 ## Contents
 
 - [Project at a glance](#project-at-a-glance)
 - [Research question](#research-question)
-- [Project pipeline](#project-pipeline)
-- [Data and cohort construction](#data-and-cohort-construction)
+- [The screening desk](#the-screening-desk)
+- [Data provenance and cohort construction](#data-provenance-and-cohort-construction)
 - [Leakage-aware feature design](#leakage-aware-feature-design)
-- [Predictive models](#predictive-models)
+- [Predictive model bench](#predictive-model-bench)
+- [Probability, ranking, and screening metrics](#probability-ranking-and-screening-metrics)
 - [Screening as a decision problem](#screening-as-a-decision-problem)
 - [Double Machine Learning extension](#double-machine-learning-extension)
 - [Key findings](#key-findings)
-- [Where to explore the project](#where-to-explore-the-project)
+- [Technical index](#technical-index)
+- [Report and repository map](#report-and-repository-map)
 - [Run locally](#run-locally)
+- [Sources and methodological references](#sources-and-methodological-references)
 - [Scope and interpretation](#scope-and-interpretation)
 - [License](#license)
 
@@ -40,249 +46,269 @@ This README is the project's information hub. The [final report](report/risk-at-
 
 | Dimension | Project design |
 |---|---|
-| Topic | Predicting completed-loan default from information available at origination |
-| Data | LendingClub accepted-loan records, originally covering 2007–2018 |
-| Study cohort | 786,818 completed individual loans issued in 2012–2015 |
+| Decision problem | Rank accepted applications by future completed-loan default risk |
+| Source artifact | LendingClub accepted-loan export covering 2007–2018 |
+| Raw scale | 2,260,701 records and 151 columns |
+| Cohort | 786,818 completed individual loans issued in 2012–2015 |
 | Modelling sample | Stratified sample of 119,995 loans |
 | Holdout design | 83,995 training loans and 36,000 test loans |
-| Models | Logistic regression, elastic net, CART, two bagging implementations, random forest |
-| Evaluation | ROC-AUC, precision–recall, Brier score, accuracy, OOB diagnostics, gains, and lift |
-| Decision layer | Rank applications by predicted default risk under limited review capacity |
-| Econometric extension | Cross-fitted partially linear DML for loan term and high interest rate |
-| Stack | R, tidyverse, `glmnet`, `rpart`, `ipred`, `ranger`, `pROC` |
+| Classifiers | Logistic regression, elastic net, CART, custom bagging, `ipred` bagging, random forest |
+| Evaluation | Accuracy, ROC-AUC, precision–recall, Brier score, OOB diagnostics, cumulative gains, lift |
+| Operational layer | Review the highest predicted-risk share first under a finite screening budget |
+| Econometric extension | Five-fold cross-fitted partially linear DML for maturity and high interest |
+| Implementation | R, tidyverse, `glmnet`, `rpart`, `ipred`, `ranger`, `pROC`, `ggplot2`, `patchwork` |
 
-The technical contribution is the connection between three layers that are often separated: careful cohort construction, probability estimation, and operational screening. A model is useful here not because it produces a label at one arbitrary threshold, but because it places future defaulters near the top of a finite review queue.
+The central contribution is the connection between **information timing**, **probability estimation**, and **review capacity**. A classifier matters here because it places eventual defaults near the front of a queue, not because it crosses one arbitrary label threshold.
 
 ## Research question
 
 How well can future default be predicted at loan origination using borrower and contract characteristics, and what does that predictive signal imply for risk-screening decisions?
 
-For loan $i$, let $Y_i=1$ indicate a completed loan that ends in default and let $X_i$ contain only information observable at origination. The predictive target is
+For loan $i$, let $Y_i=1$ denote completed-loan default and let $X_i$ contain only information observable when the loan is issued. The target score is
 
 ```math
-p_i
-=
-\Pr(Y_i=1\mid X_i).
+p_i = \Pr(Y_i=1\mid X_i).
 ```
 
-This simple probability hides three modelling challenges:
+This apparently simple target creates three design constraints:
 
-1. loan records contain many variables created after issuance, so careless feature selection leaks the outcome;
-2. default is imbalanced, making raw accuracy an incomplete measure of model quality;
-3. a platform or investor usually has a review budget, so ranking and gains matter more than a single classification cutoff.
+1. variables generated by payments, collections, recoveries, and servicing must not enter an origination-time model;
+2. the default class is a minority, so raw accuracy alone can conceal weak discrimination;
+3. operational usefulness depends on ranking quality at a chosen review capacity, not only classification at threshold 0.5.
 
-## Project pipeline
+## The screening desk
 
 ```mermaid
-flowchart TB
-    subgraph DATA["From historical loans to a fair prediction task"]
-        direction LR
-        A["Start with accepted LendingClub loans"] --> B["Keep completed 2012–2015 outcomes"] --> C["Retain information known at origination"]
+sequenceDiagram
+    autonumber
+    participant A as Accepted-loan archive
+    participant G as Origination-time gate
+    participant M as Six-model bench
+    participant H as Common held-out set
+    participant Q as Risk review queue
+    participant D as DML extension
+
+    rect rgb(230, 241, 255)
+        A->>G: 2.26M historical loan records
+        G->>G: Keep completed 2012–2015 individual loans
+        G->>G: Remove identifiers, free text, and post-issue leakage
     end
 
-    subgraph DECISION["From probability models to screening decisions"]
-        direction LR
-        D["Train linear and tree-based risk models"] --> E["Compare ranking and probability quality"] --> F["Prioritize the riskiest applications for review"]
+    rect rgb(255, 242, 220)
+        G->>M: 83,995 training loans
+        M->>M: Tune linear and tree-based probability models
+        M->>H: Score the same 36,000 held-out loans
     end
 
-    subgraph EXTENSION["From prediction to adjusted contract comparisons"]
-        direction LR
-        G["Residualize outcomes and contract terms"] --> H["Estimate adjusted term and rate associations"]
+    rect rgb(231, 247, 237)
+        H->>Q: Sort loans from highest to lowest predicted risk
+        Q->>Q: Read default capture at the available review share
     end
 
-    C --> D
-    E --> G
-
-    classDef data fill:#e8f2fb,stroke:#1d7492,color:#14202b,stroke-width:2px;
-    classDef design fill:#fff0dc,stroke:#a45c00,color:#35210a,stroke-width:2px;
-    classDef method fill:#f9e5e9,stroke:#bc0031,color:#351018,stroke-width:2px;
-    classDef result fill:#e5f3e8,stroke:#257835,color:#102916,stroke-width:2px;
-
-    class A,B data;
-    class C,D design;
-    class E,G method;
-    class F,H result;
+    rect rgb(245, 232, 255)
+        G-->>D: Contract indicators plus origination controls
+        D-->>D: Cross-fit nuisance risks and propensities
+        D-->>Q: Report adjusted associations with overlap caveats
+    end
 ```
 
-The main path is deliberately practical: define a realistic historical cohort, remove variables unavailable at the decision point, estimate risk on the training sample, test every model on the same untouched loans, and convert probability rankings into a screening policy. The DML branch asks a separate econometric question about adjusted contract-term associations.
+The solid path is the predictive screening study. The dashed branch is a separate econometric extension; it does not alter the held-out classifier comparison or turn the repository into a production underwriting system.
 
-## Data and cohort construction
+## Data provenance and cohort construction
 
-The raw input is the accepted-loan file from the public [LendingClub dataset on Kaggle](https://www.kaggle.com/datasets/wordsforthewise/lending-club/data). The local source file contains 2,260,701 rows and 151 columns. It is intentionally not committed because it is approximately 1.56 GiB and contains high-dimensional borrower records; [`data/README.md`](data/README.md) records the expected filename, dimensions, checksum, and placement.
+The exact raw artifact comes from the public [LendingClub loan-data mirror on Kaggle](https://www.kaggle.com/datasets/wordsforthewise/lending-club/data). The local CSV has 2,260,701 data rows and 151 columns and is excluded from Git because it is approximately 1.56 GiB and contains high-dimensional borrower records. [`data/README.md`](data/README.md) records its expected path, byte size, schema dimensions, SHA-256 checksum, redistribution boundary, and verification command.
 
-The analysis constructs the modelling population in stages:
+For provenance context, a [Hong Kong Institute for Monetary and Financial Research paper hosted by the Bank for International Settlements](https://www.bis.org/events/confresearchnetwork1909/lam.pdf#page=3) independently describes LendingClub's funded-listing files as 2,260,701 records from June 2007 through December 2018. The [2014 LendingClub S-1 filing in SEC EDGAR](https://www.sec.gov/Archives/edgar/data/1409970/000119312514323136/d766811ds1.htm) supplies primary historical context on the platform. The Kaggle artifact remains the executable source used in this repository.
 
-1. harmonize loan-status labels into completed default and non-default outcomes;
-2. retain loans issued between 2012 and 2015 to reduce unresolved-outcome censoring;
-3. restrict the study to individual applications;
-4. stratify by issue year and outcome before downsampling for computational tractability;
-5. remove identifiers, free text, and post-origination performance variables;
-6. create a common training/test split before model fitting.
+### Cohort funnel
 
-The resulting study design contains 119,995 loans. A fixed seed produces 83,995 training observations and 36,000 held-out test observations. All reported predictive models are evaluated on this same test set.
+| Gate | Rows retained | Why it exists |
+|---|---:|---|
+| Raw accepted-loan file | 2,260,701 | Preserve the complete historical source artifact |
+| Valid issue year and harmonized status | 2,260,668 | Construct calendar time and a coherent performance label |
+| Completed 2012–2015 individual loans | 786,818 | Reduce unresolved-outcome censoring and exclude joint applications |
+| Stratified working sample | 119,995 | Preserve year-by-default composition within local compute limits |
+| Fixed training partition | 83,995 | Fit preprocessing, tuning, and all estimators |
+| Fixed test partition | 36,000 | Compare every predictive model on identical observations |
 
-See report §§2–3 and the data-preparation audit table, [PDF pages 2–4 and 12](report/risk-at-first-sight-report.pdf#page=2).
+The stratified sample is drawn within issue-year and default cells. The 70/30 train-test split is then stratified by outcome. Full row and column transitions appear in Report Appendix Table 4, [PDF page 12](report/risk-at-first-sight-report.pdf#page=12).
 
 ## Leakage-aware feature design
 
-The predictor set describes the application and contract when the lending decision is made. It includes credit-quality proxies, FICO information, income and affordability measures, requested amount, interest rate, maturity, home ownership, employment information, and purpose categories.
-
-Variables that reveal what happened after origination—payments, recoveries, collection outcomes, realized principal, and similar servicing fields—are excluded. The distinction is fundamental:
+The feasible predictor set satisfies
 
 ```math
-X_i
-\subseteq
-\mathcal{I}_{i,\mathrm{origination}},
+X_i \subseteq \mathcal{I}_{i,\mathrm{origination}},
 ```
 
-where $\mathcal{I}_{i,\mathrm{origination}}$ is the information set available at the moment of screening. The test therefore measures a prospective prediction task rather than retrospective reconstruction of an already-observed outcome.
+where $\mathcal{I}_{i,\mathrm{origination}}$ denotes what could be known at the screening moment. Retained fields cover platform credit grade and FICO information, requested amount, income and debt-to-income measures, employment and home-ownership categories, loan purpose, maturity, and pricing.
 
-Numeric missing values are imputed from training-sample summaries, categorical levels are harmonized, and a common model matrix is created for regularized regression. The complete variable-removal and transformation logic is visible in [`src/risk_at_first_sight.R`](src/risk_at_first_sight.R).
+The pipeline excludes direct identifiers, URLs and free text, post-origination payments, outstanding balances, recoveries, collection outcomes, and other servicing variables that reveal realized performance. This changes the task from retrospective reconstruction to prospective historical prediction.
 
-## Predictive models
+Preprocessing is learned from training data:
 
-### Logistic regression
+- numeric missing values receive training-sample medians;
+- categorical missing or unseen values map to an explicit `Unknown` level;
+- training and test factors share one level system;
+- `model.matrix` creates aligned one-hot encoded designs;
+- `glmnet` standardizes its design internally;
+- assertions check binary outcomes, missingness, and identical train-test columns.
 
-The interpretable benchmark links default probability to a linear predictor:
+The full variable-removal and transformation logic is in [`src/risk_at_first_sight.R`](src/risk_at_first_sight.R).
+
+## Predictive model bench
+
+| Model | Representation and tuning | Nonlinearity | Internal diagnostic |
+|---|---|:---:|---|
+| Logistic regression | Unpenalized Bernoulli GLM | No | Convergence assertion |
+| Elastic net | Five alpha values; five-fold CV selects lambda by deviance | No | Shared CV folds across alpha values |
+| CART | Grown tree, CV-selected complexity parameter, pruning with stump safeguard | Yes | Cross-validation error table |
+| Custom bagging | 80 bootstrap `rpart` trees coded directly | Yes | OOB probabilities and error path |
+| `ipred` bagging | 80 bootstrap trees | Yes | Package OOB error |
+| Random forest | 300 probability trees with predictor subsampling | Yes | OOB prediction error and impurity importance |
+
+### Logistic and elastic-net probabilities
+
+The baseline probability model is
 
 ```math
-\widehat p_i
+\widehat{p}_i
 =
-\sigma(\beta_0+x_i^\top\beta),
-\qquad
-\sigma(t)
-=
-\frac{1}{1+e^{-t}}.
+\frac{1}{1+e^{-(\beta_0+x_i^{\top}\beta)}}.
 ```
 
-It supplies a stable reference for asking whether nonlinear tree ensembles create meaningful out-of-sample gains.
-
-### Elastic-net logistic regression
-
-The regularized estimator minimizes average Bernoulli loss plus a mixture of $\ell_1$ and $\ell_2$ penalties:
+The elastic-net estimator minimizes average Bernoulli loss plus mixed sparsity and shrinkage penalties:
 
 ```math
 \min_{\beta_0,\beta}
-\left{
+\Biggl\{
 -\frac{1}{n}
 \sum_{i=1}^{n}
-\left[
-y_i\log(\widehat p_i)
-+(1-y_i)\log(1-\widehat p_i)
-\right]
+\Bigl[
+y_i\log(\widehat{p}_i)
++
+(1-y_i)\log(1-\widehat{p}_i)
+\Bigr]
 +
 \lambda
-\left(
-\alpha\lVert\beta\rVert_1
+\Bigl[
+\alpha\Vert\beta\Vert_1
 +
-\frac{1-\alpha}{2}\lVert\beta\rVert_2^2
-\right)
-\right}.
+\frac{1-\alpha}{2}\Vert\beta\Vert_2^2
+\Bigr]
+\Biggr\}.
 ```
 
-Cross-validation selects the penalty strength and mixing choice using the training data. The $\ell_1$ component permits sparse solutions, while the $\ell_2$ component stabilizes groups of correlated credit variables.
+The alpha grid $\lbrace 0,0.25,0.5,0.75,1\rbrace$ spans ridge through lasso. The $\ell_1$ term permits sparse solutions; the $\ell_2$ term stabilizes correlated credit variables.
 
-### CART, bagging, and random forests
+### Trees and ensembles
 
-A classification tree recursively partitions the feature space, trading interpretability for nonlinear thresholds and interactions. For a node containing class proportions $\widehat\pi_0$ and $\widehat\pi_1$, the Gini impurity is
+For a classification-tree node with estimated class shares $\widehat{\pi}_0$ and $\widehat{\pi}_1$, Gini impurity is
 
 ```math
-G
-=
-1-\widehat\pi_0^2-\widehat\pi_1^2.
+G=1-\widehat{\pi}_0^2-\widehat{\pi}_1^2.
 ```
 
-Bagging averages probabilities from bootstrap trees:
+Bagging averages probability predictions over $B$ bootstrap trees:
 
 ```math
-\widehat p_{\mathrm{bag}}(x)
+\widehat{p}_{\mathrm{bag}}(x)
 =
 \frac{1}{B}
 \sum_{b=1}^{B}
-\widehat p_b^{*}(x).
+\widehat{p}^{*}_b(x).
 ```
 
-The project implements one bagging routine directly and compares it with `ipred`. Random forests add predictor subsampling at every split, reducing correlation among trees. Out-of-bag predictions provide an internal diagnostic without touching the final test set.
+An observation's OOB prediction averages only trees for which that observation was absent from the bootstrap sample. Random forests add predictor subsampling at every split, reducing correlation among the trees.
 
-The complete model definitions and tuning design are in report §3, [PDF pages 4–6](report/risk-at-first-sight-report.pdf#page=4).
+The complete definitions and tuning logic are in Report Section 3, [PDF pages 3–6](report/risk-at-first-sight-report.pdf#page=3).
 
-## Screening as a decision problem
+## Probability, ranking, and screening metrics
 
-Accuracy at threshold $0.5$ can look strong when most loans do not default. The project therefore evaluates probability quality and ranking quality separately.
-
-The Brier score measures squared probability error:
+Every classifier produces probabilities for the same 36,000-loan test set. The Brier score measures squared probability error:
 
 ```math
 \mathrm{Brier}
 =
 \frac{1}{n_{\mathrm{test}}}
 \sum_{i\in\mathcal{T}}
-(y_i-\widehat p_i)^2.
+(y_i-\widehat{p}_i)^2.
 ```
 
-At threshold $t$, the ROC coordinates are
+At score threshold $t$, the ROC coordinates are
 
 ```math
-\mathrm{TPR}(t)
-=
-\frac{\mathrm{TP}(t)}{\mathrm{TP}(t)+\mathrm{FN}(t)},
-\qquad
-\mathrm{FPR}(t)
-=
-\frac{\mathrm{FP}(t)}{\mathrm{FP}(t)+\mathrm{TN}(t)}.
+\begin{aligned}
+\mathrm{TPR}(t) &= \frac{\mathrm{TP}(t)}{\mathrm{TP}(t)+\mathrm{FN}(t)}, \\
+\mathrm{FPR}(t) &= \frac{\mathrm{FP}(t)}{\mathrm{FP}(t)+\mathrm{TN}(t)}.
+\end{aligned}
 ```
 
-For screening, test loans are sorted from highest to lowest $\widehat p_i$. The cumulative-gains curve asks what share of all eventual defaults is found after reviewing the top $q$ share of applications:
+Precision–recall analysis makes the minority default class explicit: recall is the share of defaults detected, while precision is the observed default share among flagged loans. ROC-AUC summarizes pairwise ranking across thresholds; accuracy at 0.5 is retained only as one familiar reference point.
+
+## Screening as a decision problem
+
+Sort the test loans by decreasing $\widehat{p}_i$. If $\mathrm{Top}(q)$ is the highest-risk share $q$ of that ordering, cumulative gain is
 
 ```math
 \mathrm{Gain}(q)
 =
 \frac{
-\sum_{i\in\mathrm{Top}(q)}y_i
+\sum_{i\in\mathrm{Top}(q)} y_i
 }{
-\sum_{i\in\mathcal{T}}y_i
-}.
+\sum_{i\in\mathcal{T}} y_i
+},
+\qquad
+\mathrm{Lift}(q)=\frac{\mathrm{Gain}(q)}{q}.
 ```
 
+<table>
+<tr>
+<td align="center"><strong>1 · SCORE</strong><br>Estimate completed-loan default probability</td>
+<td align="center"><strong>2 · SORT</strong><br>Order applications from highest to lowest risk</td>
+<td align="center"><strong>3 · SCREEN</strong><br>Choose review capacity and read captured defaults</td>
+</tr>
+</table>
+
 > [!TIP]
-> **A probability model becomes a screening system when review capacity is explicit.** Ranking applicants by predicted risk lets a platform choose a workload first and then read the corresponding default capture from the gains curve. This is more operationally informative than reporting accuracy at one threshold alone.
+> **The review budget is part of the model's meaning.** A 20% screening share asks a different operational question from a 50% share. Gains and lift expose that trade-off directly instead of hiding it behind one class label.
 
 ## Double Machine Learning extension
 
-The econometric extension studies two binary contract indicators: a 60-month rather than 36-month maturity, and an interest rate at or above the sample's 75th percentile. It uses the partially linear representation
+The separate econometric branch studies two binary contract indicators: 60-month rather than 36-month maturity, and an interest rate at or above the training sample's 75th percentile. The partially linear representation is
 
 ```math
 \begin{aligned}
-Y_i&=\theta_0D_i+g_0(X_i)+\varepsilon_i,\\
-D_i&=m_0(X_i)+v_i.
+Y_i &= \theta_0D_i+g_0(X_i)+\varepsilon_i, \\
+D_i &= m_0(X_i)+v_i.
 \end{aligned}
 ```
 
-Cross-fitted elastic-net nuisance models estimate the conditional outcome and treatment functions without predicting an observation from a model trained on that observation. Define
+Five-fold cross-fitting predicts each observation with nuisance models trained without that observation:
 
 ```math
-\widetilde Y_i
+\widetilde{Y}_i
 =
-Y_i-\widehat g^{(-k(i))}(X_i),
+Y_i-\widehat{g}^{(-k(i))}(X_i),
 \qquad
-\widetilde D_i
+\widetilde{D}_i
 =
-D_i-\widehat m^{(-k(i))}(X_i).
+D_i-\widehat{m}^{(-k(i))}(X_i).
 ```
 
 The residual-on-residual slope is
 
 ```math
-\widehat\theta_{\mathrm{DML}}
+\widehat{\theta}_{\mathrm{DML}}
 =
 \frac{
-\sum_{i=1}^{n}\widetilde D_i\widetilde Y_i
+\sum_{i=1}^{n}\widetilde{D}_i\widetilde{Y}_i
 }{
-\sum_{i=1}^{n}\widetilde D_i^2
+\sum_{i=1}^{n}\widetilde{D}_i^2
 }.
 ```
 
-Orthogonalization reduces sensitivity to regularization error in the nuisance functions. It does not solve weak overlap or unobserved confounding, so these estimates are presented as adjusted associations rather than established causal effects. See report §3, [PDF page 6](report/risk-at-first-sight-report.pdf#page=6).
+Elastic-net logistic nuisance models estimate outcome risk and treatment propensity. Cross-fitting and orthogonalization reduce first-stage regularization bias; they do not repair weak overlap or unobserved confounding. The resulting quantities are therefore described as adjusted associations. See Report Section 3, [PDF page 6](report/risk-at-first-sight-report.pdf#page=6).
 
 ## Key findings
 
@@ -297,88 +323,104 @@ Orthogonalization reduces sensitivity to regularization error in the nuisance fu
 | Custom bagging | 0.817 | 0.690 | 0.138 |
 | CART | 0.816 | 0.666 | 0.140 |
 
-The central result is not that the most complex model wins. Logistic regression and elastic net match the strongest test-set discrimination and calibration, while the random forest is extremely close. Nonlinear ensembles add limited incremental value after the origination features are carefully constructed.
+The result is deliberately not a complexity victory. Logistic regression and elastic net match the strongest held-out discrimination and probability error; the random forest is close, while the additional ensembles deliver limited incremental value after leakage-aware feature construction.
 
-### Screening performance
+### Screening result
 
-- reviewing approximately the top 20–30% of predicted-risk applications captures roughly half of all observed defaults;
-- this materially outperforms random review, which would capture only 20–30% at the same capacity;
-- the gains curves make the model useful as a prioritization tool even when class predictions at $0.5$ are conservative;
-- random-forest OOB performance supports its role as a strong nonlinear benchmark, while simpler linear models remain competitive and easier to interpret.
+- reviewing roughly the highest-risk 20–30% of test loans captures about half of all observed defaults;
+- random review would capture only 20–30% at the same capacity;
+- logistic regression, elastic net, and random forest dominate the weaker tree variants across much of the ranking range;
+- custom-bagging OOB error stabilizes as the ensemble grows, supporting the direct implementation check.
 
-### Contract-term comparisons
+### Contract comparisons
 
-| Treatment comparison | Naive difference | DML-adjusted estimate | Reported 95% interval |
+| Contract comparison | Naive difference | DML-adjusted estimate | Reported 95% interval |
 |---|---:|---:|---:|
 | 60-month vs. 36-month term | +18.28 pp | +67.69 pp | [-343.62, 479.01] pp |
 | High vs. lower interest rate | +18.19 pp | +1.74 pp | [-4.87, 8.34] pp |
 
-The extreme maturity interval signals severe lack of residual treatment overlap; the adjusted term coefficient is not substantively identified by this design. For high interest rates, adjustment removes most of the raw difference and the interval includes zero. Neither result supports a clean causal claim.
+The maturity estimate is not substantively identified by this design: residual treatment overlap is too weak, producing an implausibly wide interval. For the high-rate comparison, adjustment removes most of the raw difference and the interval includes zero. Neither supports a clean causal claim.
 
-These are the values preserved in the final academic report. An end-to-end rerun under the recorded public environment reproduced every predictive-model metric exactly and returned DML estimates of +66.78 pp for maturity and +1.53 pp for high interest, with the same weak-overlap and interval conclusions. The small drift reflects version-sensitive cross-validated nuisance fits; [`environment/session-info.txt`](environment/session-info.txt) records the verified package stack.
+The table preserves the submitted report values. A complete rerun under the recorded public environment reproduced all six predictive rows exactly and returned DML point estimates of +66.78 pp for maturity and +1.53 pp for high interest, with the same overlap and interval conclusions. [`environment/session-info.txt`](environment/session-info.txt) records that verified package stack.
 
-Full performance tables, ROC and precision–recall curves, gains and lift, score distributions, OOB diagnostics, and DML results are in report §4, [PDF pages 7–9](report/risk-at-first-sight-report.pdf#page=7).
+Full performance tables, ROC and precision–recall curves, gains and lift, score distributions, OOB diagnostics, and DML outputs are in Report Section 4, [PDF pages 6–9](report/risk-at-first-sight-report.pdf#page=6).
 
-## Where to explore the project
+## Technical index
 
-| Topic or artifact | Location |
+| Layer | Techniques and concepts implemented |
 |---|---|
-| Motivation and screening question | Report §1, [PDF page 2](report/risk-at-first-sight-report.pdf#page=2) |
-| Cohort, variables, and descriptives | Report §2, [PDF pages 2–3](report/risk-at-first-sight-report.pdf#page=2) |
-| Predictive-model mathematics | Report §3, [PDF pages 4–6](report/risk-at-first-sight-report.pdf#page=4) |
-| Test performance and screening curves | Report §4, [PDF pages 7–8](report/risk-at-first-sight-report.pdf#page=7) |
-| DML design and interpretation | Report §§3–4, [PDF pages 6 and 8–9](report/risk-at-first-sight-report.pdf#page=6) |
-| References and generated figures | Report, [PDF pages 10–11](report/risk-at-first-sight-report.pdf#page=10) |
-| Complete submitted implementation | Report appendix, [PDF pages 12–62](report/risk-at-first-sight-report.pdf#page=12) |
-| Curated executable implementation | [`src/risk_at_first_sight.R`](src/risk_at_first_sight.R) |
+| Cohort engineering | Status harmonization, completed-outcome restriction, censoring control, individual-application filtering, stratified downsampling |
+| Leakage control | Decision-time information set, identifier and text removal, servicing-field exclusion, outcome-aware feature audit |
+| Preprocessing | Training-only median imputation, explicit unknown categories, factor-level alignment, one-hot encoding, standardization |
+| Linear models | Bernoulli GLM, log-odds, elastic net, ridge-to-lasso alpha grid, coordinate-descent paths, five-fold CV deviance |
+| Tree models | CART, Gini impurity, complexity pruning, bootstrap aggregation, soft voting, random feature selection |
+| Ensemble diagnostics | Direct 80-tree bagger, `ipred` benchmark, 300-tree probability forest, OOB probabilities, OOB error path |
+| Predictive evaluation | Accuracy, confusion matrices, ROC curves, AUC, precision–recall curves, Brier score, score distributions |
+| Decision evaluation | Risk ordering, cumulative gains, lift, review capacity, default capture |
+| Econometrics | Partially linear model, elastic-net nuisance functions, cross-fitting, residualization, orthogonal score intuition, overlap diagnostics |
+| Software | R, `readr`, `dplyr`, `tidyr`, `stringr`, `forcats`, `glmnet`, `rpart`, `ipred`, `ranger`, `pROC`, `ggplot2`, Make |
+
+## Report and repository map
+
+| Question or artifact | Best destination |
+|---|---|
+| Motivation and screening question | Report Section 1, [PDF page 2](report/risk-at-first-sight-report.pdf#page=2) |
+| Cohort, variables, and descriptives | Report Section 2, [PDF pages 2–3](report/risk-at-first-sight-report.pdf#page=2) |
+| Predictive-model mathematics | Report Section 3, [PDF pages 3–6](report/risk-at-first-sight-report.pdf#page=3) |
+| Test performance and screening curves | Report Section 4, [PDF pages 6–8](report/risk-at-first-sight-report.pdf#page=6) |
+| DML design and interpretation | Report Sections 3–4, [PDF pages 6 and 8–9](report/risk-at-first-sight-report.pdf#page=6) |
+| Conclusion | Report Section 5, [PDF page 9](report/risk-at-first-sight-report.pdf#page=9) |
+| Bibliography and figure appendix | [PDF pages 10–11](report/risk-at-first-sight-report.pdf#page=10) |
+| Data-preparation audit table | [PDF page 12](report/risk-at-first-sight-report.pdf#page=12) |
+| Complete submitted implementation | [PDF pages 12–62](report/risk-at-first-sight-report.pdf#page=12) |
+| Curated executable pipeline | [`src/risk_at_first_sight.R`](src/risk_at_first_sight.R) |
 | Raw-data acquisition contract | [`data/README.md`](data/README.md) |
+| Verified public package stack | [`environment/session-info.txt`](environment/session-info.txt) |
 
 ## Run locally
-
-### Installation
 
 ```bash
 git clone https://github.com/SadraDaneshvar/lendingclub-default-risk-screening.git
 cd lendingclub-default-risk-screening
-
 make setup
 ```
 
-### Prepare the data
-
-Download the accepted-loan archive described in [`data/README.md`](data/README.md), then place the extracted file at
+Download the accepted-loan archive described in [`data/README.md`](data/README.md), extract it to
 
 ```text
 data/accepted_2007_to_2018Q4.csv
 ```
 
-You can verify the local file against the recorded source artifact with
+and verify the exact artifact before fitting:
 
 ```bash
 make verify-data
-```
-
-### Run the full analysis
-
-```bash
 make run
 ```
 
-Generated plots and LaTeX tables are written under `results/` and remain untracked. The raw CSV is approximately 1.56 GiB; importing it, fitting repeated tree ensembles, and running cross-fitted DML require substantial memory and compute time. The report preserves the complete results without requiring a full rerun merely to inspect the study.
+Generated plots and LaTeX tables are written under `results/` and remain untracked. The 1.56 GiB import, repeated tree ensembles, and cross-fitted nuisance models require substantial memory and compute time. The report preserves the complete submitted outputs so the research can be inspected without rerunning every estimator.
 
-The curated script differs from the report appendix only in repository engineering: it checks dependencies instead of installing them during execution, uses a portable serif font, and routes generated files into an ignored results directory. The modelling logic and recorded research results are unchanged.
+## Sources and methodological references
+
+- **Executable data mirror:** [All Lending Club loan data on Kaggle](https://www.kaggle.com/datasets/wordsforthewise/lending-club/data), with exact local integrity metadata in [`data/README.md`](data/README.md).
+- **Historical export corroboration:** F. Y. Eric Lam, [*Funding Decision in Online Marketplace Lending*](https://www.bis.org/events/confresearchnetwork1909/lam.pdf#page=3), hosted by the Bank for International Settlements.
+- **Primary platform context:** LendingClub Corporation, [2014 Form S-1 registration statement](https://www.sec.gov/Archives/edgar/data/1409970/000119312514323136/d766811ds1.htm), U.S. Securities and Exchange Commission.
+- **Elastic-net computation:** Friedman, Hastie, and Tibshirani, [*Regularization Paths for Generalized Linear Models via Coordinate Descent*](https://www.jstatsoft.org/article/view/v033i01), *Journal of Statistical Software* 33(1).
+- **Double Machine Learning:** Chernozhukov and coauthors, [*Double/debiased machine learning for treatment and structural parameters*](https://doi.org/10.1111/ectj.12097), *The Econometrics Journal* 21(1).
+
+The final report contains the complete credit-risk and P2P-lending bibliography used to motivate the design.
 
 ## Scope and interpretation
 
-- The sample contains accepted LendingClub loans, not all credit applicants; conclusions therefore concern risk ranking within the observed platform population.
-- Completed 2012–2015 outcomes reduce censoring but define a historical cohort rather than a live production distribution.
-- The random train/test split measures interpolation within that cohort, not temporal deployment after 2015.
-- Accuracy is influenced by class imbalance; AUC, Brier score, precision–recall, and gains provide the more informative evaluation.
-- No protected-group fairness analysis is performed, and the model should not be represented as a production underwriting system.
-- DML estimates depend on overlap and conditional-identification assumptions; the reported maturity diagnostic explicitly shows where those assumptions become weak.
+- The source contains accepted LendingClub loans, not the full applicant pool; conclusions concern ranking within the observed platform population.
+- Completed 2012–2015 outcomes reduce censoring but define a historical cohort rather than a current deployment distribution.
+- The random split measures interpolation within that cohort, not performance after 2015.
+- AUC, Brier score, precision–recall, gains, and lift are more informative here than accuracy alone.
+- No protected-group fairness analysis, policy validation, or production monitoring is performed.
+- DML results depend on overlap and conditional-identification assumptions; the maturity diagnostic shows where those assumptions fail in practice.
 
 ## License
 
-This project is released under the [MIT License](LICENSE). Citation metadata is provided in [`CITATION.cff`](CITATION.cff), and the complete academic bibliography is included in the final report.
+This project is released under the [MIT License](LICENSE). Citation metadata is provided in [`CITATION.cff`](CITATION.cff).
 
-The repository is an academic analysis and does not provide lending, underwriting, investment, or regulatory advice.
+The repository is an academic analysis and does not provide lending, underwriting, investment, legal, or regulatory advice. The MIT license covers original code and documentation, not the third-party LendingClub records.
